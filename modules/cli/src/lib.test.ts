@@ -2,21 +2,22 @@
 import { HAIBUN_O_TESTSTEPSWITHOPTIONS_EXISTS, testWithDefaults } from '@haibun/core/build/lib/test/lib';
 import TestSteps from '@haibun/core/build/lib/test/TestSteps';
 import TestStepsWithOptions from '@haibun/core/build/lib/test/TestStepsWithOptions';
-import { getDefaultOptions, processEnv } from '@haibun/core/build/lib/util';
-import { usageThenExit } from './lib';
+import { getDefaultOptions } from '@haibun/core/build/lib/util';
+import * as lib from './lib';
+import { processEnv } from './lib';
 
 describe('usageThenExit', () => {
   it('exits with success', () => {
     const ranOnce = (code: number | undefined) => { expect(code).toBe(0); return <never>undefined }
     jest.spyOn(process, 'exit').mockImplementationOnce(ranOnce);
     jest.spyOn(console, 'info').mockImplementationOnce(any => undefined);
-    usageThenExit({ ...getDefaultOptions(), steppers: ['../core/src/lib/test/TestStepsWithOptions'] });
+    lib.usageThenExit({ ...getDefaultOptions(), steppers: ['../core/src/lib/test/TestStepsWithOptions'] });
   })
   it('exits with error', () => {
     const ranOnce = (code: number | undefined) => { expect(code).toBe(1); return <never>undefined }
     jest.spyOn(process, 'exit').mockImplementationOnce(ranOnce);
     jest.spyOn(console, 'error').mockImplementationOnce(() => undefined);
-    usageThenExit({ ...getDefaultOptions(), steppers: ['../core/src/lib/test/TestStepsWithOptions'] }, 'woops');
+    lib.usageThenExit({ ...getDefaultOptions(), steppers: ['../core/src/lib/test/TestStepsWithOptions'] }, 'woops');
   })
 });
 
@@ -41,3 +42,49 @@ describe('builds', () => {
     expect(world.shared.get('done')).toEqual('ok');
   });
 });
+
+describe('processEnv', () => {
+  it('carries extra options', () => {
+    const specl = getDefaultOptions();
+    const { protoOptions } = lib.processEnv({ HAIBUN_TEST: 'true' }, specl.options);
+
+    expect(protoOptions.extraOptions['HAIBUN_TEST']).toBeDefined();
+  });
+  it('split_shared incorrect message', () => {
+    const specl = getDefaultOptions();
+
+    const { errors } = lib.processEnv({ HAIBUN_SPLIT_SHARED: '1,2' }, specl.options);
+    expect(errors.length).toBe(1);
+  });
+  it('processes split_shared', () => {
+    const specl = getDefaultOptions();
+    const { splits } = lib.processEnv({ HAIBUN_SPLIT_SHARED: 'foo=1,2' }, specl.options).protoOptions.options;
+    expect(splits).toEqual([{ foo: '1' }, { foo: '2' }]);
+  });
+  it('assigns int', () => {
+    const specl = getDefaultOptions();
+    const { options } = lib.processEnv({ HAIBUN_LOOPS: '1' }, specl.options).protoOptions;
+    expect(options.loops).toBe(1);
+  })
+  it('errors for string passed as int', () => {
+    const specl = getDefaultOptions();
+    const { errors } = lib.processEnv({ HAIBUN_LOOPS: '1.2' }, specl.options);
+    expect(errors.length).toBe(1);
+  });
+});
+
+describe('applyEnvCollections', () => {
+  it('creates pairs', () => {
+    const p = { options: { env: {} }, extraOptions: {} };
+    lib.applyEnvCollections('a=1,b=2,a=3,b=4', p);
+
+    expect(p.options.env).toEqual({
+      a: ["1", "3"],
+      b: ["2", "4"]
+    });
+  });
+  it('prevents collision', () => {
+    const p = { options: { env: { a: 1 } }, extraOptions: {} };
+    expect(() => lib.applyEnvCollections('a=1', p)).toThrow();
+  })
+})

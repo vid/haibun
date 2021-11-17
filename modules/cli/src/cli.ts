@@ -6,9 +6,9 @@ import { WorldContext } from '@haibun/core/build/lib/contexts';
 import Logger from '@haibun/core/build/lib/Logger';
 
 import { run } from '@haibun/core/build/lib/run';
-import { getOptionsOrDefault, processEnv, resultOutput, getRunTag, writeTraceFile } from '@haibun/core/build/lib/util';
+import { getOptionsOrDefault, resultOutput, getRunTag, writeTraceFile } from '@haibun/core/build/lib/util';
 import { ILogOutput } from '@haibun/core/build/lib/interfaces/logger';
-import { ranResultError, usageThenExit } from './lib';
+import { processEnv, ranResultError, usageThenExit } from './lib';
 import { Timer } from '@haibun/core/build/lib/Timer';
 
 export type TRunResult = { output: any, result: TResult, shared: WorldContext, tag: TTag, runStart: number, runDuration: number, fromStart: number };
@@ -136,7 +136,7 @@ async function doRun(base: string, specl: TSpecl, runtime: {}, featureFilter: st
 
   const { result } = await run({ specl, base, world, featureFilter, protoOptions });
   if (world.options.trace) {
-    writeTraceFile(world.tag, result);
+    writeTraceFile(world, result);
   }
   const output = await resultOutput(process.env.HAIBUN_OUTPUT, result, shared);
 

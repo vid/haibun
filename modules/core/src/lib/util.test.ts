@@ -22,36 +22,6 @@ describe('isLowerCase', () => {
   expect(util.isLowerCase('0')).toBe(false);
 });
 
-describe('processEnv', () => {
-  it('carries extra options', () => {
-    const specl = util.getDefaultOptions();
-    const { protoOptions } = util.processEnv({ HAIBUN_TEST: 'true' }, specl.options);
-
-    expect(protoOptions.extraOptions['HAIBUN_TEST']).toBeDefined();
-  });
-  it('split_shared incorrect message', () => {
-    const specl = util.getDefaultOptions();
-
-    const { errors } = util.processEnv({ HAIBUN_SPLIT_SHARED: '1,2' }, specl.options);
-    expect(errors.length).toBe(1);
-  });
-  it('processes split_shared', () => {
-    const specl = util.getDefaultOptions();
-    const { splits } = util.processEnv({ HAIBUN_SPLIT_SHARED: 'foo=1,2' }, specl.options).protoOptions.options;
-    expect(splits).toEqual([{ foo: '1' }, { foo: '2' }]);
-  });
-  it('assigns int', () => {
-    const specl = util.getDefaultOptions();
-    const { options } = util.processEnv({ HAIBUN_LOOPS: '1' }, specl.options).protoOptions;
-    expect(options.loops).toBe(1);
-  })
-  it('errors for string passed as int', () => {
-    const specl = util.getDefaultOptions();
-    const { errors } = util.processEnv({ HAIBUN_LOOPS: '1.2' }, specl.options);
-    expect(errors.length).toBe(1);
-  });
-});
-
 describe('getStepperOptions', () => {
   it('finds stepper options', async () => {
     const steppers = await util.getSteppers({ steppers: [], addSteppers: [TestStepsWithOptions], ...getDefaultWorld(0) });
@@ -79,21 +49,5 @@ describe('getType', () => {
   });
   it('finds no type', () => {
     expect(withNameType('file.feature', '').type).toBe('feature');
-  })
-})
-
-describe('applyEnvCollections', () => {
-  it('creates pairs', () => {
-    const p = { options: { env: {} }, extraOptions: {} };
-    util.applyEnvCollections('a=1,b=2,a=3,b=4', p);
-
-    expect(p.options.env).toEqual({
-      a: ["1", "3"],
-      b: ["2", "4"]
-    });
-  });
-  it('prevents collision', () => {
-    const p = { options: { env: { a: 1 } }, extraOptions: {} };
-    expect(() => util.applyEnvCollections('a=1', p)).toThrow();
   })
 })
